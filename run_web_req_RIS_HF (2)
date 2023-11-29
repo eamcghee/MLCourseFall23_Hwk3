@@ -1,0 +1,86 @@
+#!/bin/csh -f
+set user = "rick.aster@colostate.edu"
+set password = "ZI8kyCvaPB6O"
+#set user = "nobody@iris.edu"
+#set password = "anonymous"
+
+foreach year (2016)
+
+set net = XH
+set loc = "--"
+
+@ pyear = $year - 1
+set bjday = `datecalc -j $pyear 12 31`
+
+#set jday_start=`datecalc -j $year 2 21`
+set jday_start=`datecalc -j $year 5 2`
+#set jday_end=`datecalc -j $year 2 28`
+set jday_end=`datecalc -j $year 5 2`
+foreach jday (`seq $jday_start $jday_end`)
+echo day $jday
+
+#convert sday to month and day
+set wdate = `datecalc -j $jday`
+set month = $wdate[2]
+set sday = $wdate[3]
+
+@ eday = $sday + 1
+
+if ($month < 10) then
+ set month = 0$month
+endif
+
+if ($sday < 10) then
+ set sday=0$sday
+endif
+
+if ($eday < 10) then
+ set eday=0$eday
+endif
+
+@ jd = $jday - $bjday
+
+if ($jd < 10) then
+set jd = 00$jd
+endif
+
+if ($jd > 9 & $jd < 100) then
+set jd = 0$jd
+endif
+
+#foreach sta (RS01 RS02 RS03 RS04 RS05 RS06 RS07 RS08 RS08 RS09 RS10 RS11 RS12 RS13 RS14 RS15 RS16 RS17 RS18 DR01 DR02 DR03 DR04 DR05 DR06 DR07 DR08 DR09 DR10 DR11 DR12 DR13 DR14 DR15 DR16)
+foreach sta (RS01)
+
+if ! -e $sta\_HF mkdir $sta\_HF
+foreach cha (HHZ HHN HHE) 
+
+set start = $year-$month-$sday"T00:00:00"
+set end =   $year-$month-$eday"T00:00:00"
+set outfile = $sta\_$cha\_$loc\_$year\_$jd.sac 
+
+echo $sta\_$cha\_$loc\_$year\_$jd.sac
+
+#if ! -e $sta\_HF/$outfile then
+if ! -e /$sta/$outfile then
+
+echo curl --digest --user $user\:$password --output $outfile  "http://service.iris.edu/irisws/timeseries/1/queryauth?net=$net&sta=$sta&loc=$loc&cha=$cha&start=$start&end=$end&output=sacbb"
+curl --digest --user $user\:$password --output $outfile  "http://service.iris.edu/irisws/timeseries/1/queryauth?net=$net&sta=$sta&loc=$loc&cha=$cha&start=$start&end=$end&output=sacbb"
+set x = `head -1 $outfile | awk '/Error/ {print 1}'`
+
+if $x == 1 then
+ rm $outfile
+endif
+
+mv $sta*.sac $sta\_HF/.
+#mv $sta*.sac $sta
+
+else
+echo "file found"
+endif
+
+end
+end
+
+end
+
+end
